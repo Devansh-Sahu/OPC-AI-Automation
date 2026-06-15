@@ -1,0 +1,286 @@
+version: '3.9'
+
+# =============================================================================
+# OpenSource AI Engineer — Docker Compose
+# =============================================================================
+# Services:
+#   postgres   — Primary relational database (PostgreSQL 16)
+#   redis      — Job queue + caching (Redis 7)
+#   chromadb   — Vector store for RAG (ChromaDB)
+#   backend    — FastAPI application server
+#   worker     — LangGraph agent scheduler / Celery worker
+#   frontend   — Next.js dashboard
+# =============================================================================
+
+x-backend-env: &backend-env
+  DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://ose_user:ose_password@postgres:5432/ose_db}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+  CHROMADB_HOST: ${CHROMADB_HOST:-chromadb}
+  CHROMADB_PORT: ${CHROMADB_PORT:-8000}
+  SECRET_KEY: ${SECRET_KEY:-changeme-dev-secret-key-32chars-min}
+  FERNET_KEY: ${FERNET_KEY}
+  ALGORITHM: ${ALGORITHM:-HS256}
+  ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+  GEMINI_API_KEY: ${GEMINI_API_KEY}
+  OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+  OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:14b}
+  GITHUB_TOKEN: ${GITHUB_TOKEN}
+  GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
+  GITHUB_USERNAME: ${GITHUB_USERNAME}
+  TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+  TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
+  DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
+  SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER}
+  SMTP_PASSWORD: ${SMTP_PASSWORD}
+  NOTIFICATION_EMAIL: ${NOTIFICATION_EMAIL}
+  MAX_RETRIES: ${MAX_RETRIES:-3}
+  SANDBOX_TIMEOUT_SECONDS: ${SANDBOX_TIMEOUT_SECONDS:-120}
+  SANDBOX_MEMORY_MB: ${SANDBOX_MEMORY_MB:-512}
+  MAX_CONCURRENT_AGENTS: ${MAX_CONCURRENT_AGENTS:-3}
+  ISSUE_DISCOVERY_INTERVAL_HOURS: ${ISSUE_DISCOVERY_INTERVAL_HOURS:-24}
+  REPO_DISCOVERY_INTERVAL_DAYS: ${REPO_DISCOVERY_INTERVAL_DAYS:-7}
+  ENABLE_INNOVATION_AGENT: ${ENABLE_INNOVATION_AGENT:-true}
+  ENABLE_GSOC_DISCOVERY: ${ENABLE_GSOC_DISCOVERY:-true}
+  ENABLE_CNCF_DISCOVERY: ${ENABLE_CNCF_DISCOVERY:-true}
+  ENABLE_SANDBOX: ${ENABLE_SANDBOX:-true}
+  ENVIRONMENT: ${ENVIRONMENT:-production}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — Primary relational database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: ose_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ose_db}
+      POSTGRES_USER: ${POSTGRES_USER:-ose_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ose_password}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ose_user} -d ${POSTGRES_DB:-ose_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - ose-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ---------------------------------------------------------------------------
+  # Redis — Job queue, caching, pub/sub for WebSocket events
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: ose_redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --loglevel warning
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - ose-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ---------------------------------------------------------------------------
+  # ChromaDB — Vector store for RAG (code embeddings)
+  # ---------------------------------------------------------------------------
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: ose_chromadb
+    restart: unless-stopped
+    environment:
+      CHROMA_SERVER_HOST: "0.0.0.0"
+      CHROMA_SERVER_HTTP_PORT: "8000"
+      CHROMA_SERVER_CORS_ALLOW_ORIGINS: '["http://localhost:3000","http://backend:8000"]'
+      ANONYMIZED_TELEMETRY: "False"
+      ALLOW_RESET: "True"
+      IS_PERSISTENT: "True"
+      PERSIST_DIRECTORY: /chroma/chroma
+    volumes:
+      - chroma_data:/chroma/chroma
+    ports:
+      - "${CHROMADB_EXTERNAL_PORT:-8001}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - ose-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ---------------------------------------------------------------------------
+  # Backend — FastAPI application server (uvicorn)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+      target: production
+    container_name: ose_backend
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+    volumes:
+      - ./backend:/app/backend:ro
+      - ./alembic:/app/alembic:ro
+      - repo_workspace:/tmp/repos
+      - ./scripts:/app/scripts:ro
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - ose-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ---------------------------------------------------------------------------
+  # Worker — LangGraph agent scheduler + background job processor
+  # ---------------------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+      target: production
+    container_name: ose_worker
+    restart: unless-stopped
+    command: python -m backend.workers.scheduler
+    environment:
+      <<: *backend-env
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+      WORKER_QUEUES: ${WORKER_QUEUES:-default,agents,discovery}
+    volumes:
+      - ./backend:/app/backend:ro
+      - ./alembic:/app/alembic:ro
+      - repo_workspace:/tmp/repos
+      - ./scripts:/app/scripts:ro
+      # Docker socket — worker spawns sandbox containers at runtime
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - ose-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ---------------------------------------------------------------------------
+  # Frontend — Next.js dashboard
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+      target: runner
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:8000}
+    container_name: ose_frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:8000}
+      PORT: 3000
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - ose-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+    labels:
+      com.ose.description: "PostgreSQL persistent data"
+  redis_data:
+    driver: local
+    labels:
+      com.ose.description: "Redis AOF persistence"
+  chroma_data:
+    driver: local
+    labels:
+      com.ose.description: "ChromaDB vector embeddings"
+  repo_workspace:
+    driver: local
+    labels:
+      com.ose.description: "Cloned repository workspace (shared between backend + worker)"
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  ose-network:
+    driver: bridge
+    labels:
+      com.ose.description: "OpenSource AI Engineer internal network"

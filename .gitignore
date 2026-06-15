@@ -1,0 +1,280 @@
+# =============================================================================
+# OpenSource AI Engineer — .gitignore
+# =============================================================================
+
+# =============================================================================
+# SECRETS & ENVIRONMENT — NEVER COMMIT
+# =============================================================================
+.env
+.env.local
+.env.production
+.env.staging
+.env.*.local
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+.secrets/
+
+# =============================================================================
+# PYTHON
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.env.bak
+env.bak/
+.virtualenv/
+
+# Pytest
+.pytest_cache/
+.cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+coverage.json
+*.cover
+*.py,cover
+
+# Mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Ruff
+.ruff_cache/
+
+# pyright
+pyrightconfig.json
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# Poetry
+poetry.lock
+# Uncomment to ignore poetry.lock if you prefer: # poetry.lock
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# =============================================================================
+# NODE / NEXT.JS
+# =============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.yarn/
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Next.js
+frontend/.next/
+frontend/out/
+.next/
+out/
+
+# Next.js build output
+frontend/.next/
+frontend/build/
+.next/
+build/
+
+# Next.js cache
+frontend/.vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# =============================================================================
+# DOCKER & INFRASTRUCTURE
+# =============================================================================
+# Do NOT ignore docker-compose.yml — that's the main infra file
+# Do ignore overrides with secrets
+docker-compose.override.yml
+docker-compose.local.yml
+
+# =============================================================================
+# DATABASE & STORAGE (runtime data — never commit)
+# =============================================================================
+# ChromaDB vector store data
+chroma_data/
+chroma/
+
+# Repository workspace (cloned repos — can be very large)
+repo_workspace/
+/tmp/repos/
+
+# PostgreSQL local data (if running outside Docker)
+postgres_data/
+pgdata/
+
+# Redis persistence files
+redis_data/
+dump.rdb
+appendonly.aof
+
+# =============================================================================
+# ALEMBIC — Migration versions (keep initial, ignore generated)
+# =============================================================================
+# Keep all migration files tracked — they are critical for schema management
+# Only ignore auto-generated backups
+alembic/versions/*.pyc
+
+# =============================================================================
+# LOGS
+# =============================================================================
+*.log
+*.log.*
+logs/
+log/
+*.out
+
+# =============================================================================
+# OS-SPECIFIC
+# =============================================================================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+Icon?
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# =============================================================================
+# EDITORS & IDEs
+# =============================================================================
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+.idea_modules/
+
+# Vim/Neovim
+*.swp
+*.swo
+*.swn
+*~
+.netrwhist
+tags
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+auto-save-list
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+
+# =============================================================================
+# TESTING & COVERAGE
+# =============================================================================
+.coverage
+coverage/
+coverage.xml
+htmlcov/
+.hypothesis/
+test-results/
+junit.xml
+test-report.xml
+
+# =============================================================================
+# MISC
+# =============================================================================
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*.rej
+
+# Compiled binaries
+*.exe
+*.dll
+*.dylib
+*.out
+
+# Archives
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Terraform (if used for cloud deployment)
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
