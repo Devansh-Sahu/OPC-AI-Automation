@@ -128,6 +128,15 @@ class Settings(BaseSettings):
     SCHEDULER_REPO_DISCOVERY_CRON: str = "0 */6 * * *"   # every 6 hours
     SCHEDULER_ISSUE_SCAN_CRON: str = "0 */2 * * *"       # every 2 hours
     SCHEDULER_KNOWLEDGE_SYNC_CRON: str = "0 2 * * *"     # daily at 02:00
+    
+    # ── Discovery & Worker Config ─────────────────────────────────────────────
+    ISSUE_DISCOVERY_INTERVAL_HOURS: int = 24
+    REPO_DISCOVERY_INTERVAL_DAYS: int = 7
+    ENABLE_INNOVATION_AGENT: bool = True
+    ENABLE_GSOC_DISCOVERY: bool = True
+    ENABLE_CNCF_DISCOVERY: bool = True
+    ENABLE_SANDBOX: bool = True
+    MAX_CONCURRENT_AGENTS: int = 3
 
     # ── Scoring Weights ───────────────────────────────────────────────────────
     WEIGHT_STARS: float = 0.20

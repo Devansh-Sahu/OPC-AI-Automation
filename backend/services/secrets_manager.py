@@ -2,8 +2,7 @@ import logging
 import json
 from datetime import datetime, timezone
 import base64
-from cryptography.fernet import Fernet
-from cryptography.exceptions import InvalidToken
+from cryptography.fernet import Fernet, InvalidToken
 from backend.core.config import settings
 
 logger = logging.getLogger(__name__)

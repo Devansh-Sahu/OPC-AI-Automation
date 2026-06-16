@@ -7,8 +7,8 @@ import logging
 from backend.core.config import settings
 from backend.core.database import Base, engine
 
-# Import routers (assuming they will be created)
-# from backend.api.routes import router as api_router
+# Import routers
+from backend.api import api_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,9 +18,8 @@ async def lifespan(app: FastAPI):
     # Startup actions
     logger.info("Starting up OpenSource AI Engineer...")
     async with engine.begin() as conn:
-        # Create all tables (in a real app, use Alembic)
-        # await conn.run_sync(Base.metadata.create_all)
-        pass
+        # Create all tables
+        await conn.run_sync(Base.metadata.create_all)
         
     yield
     
@@ -53,7 +52,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 # Include API router
-# app.include_router(api_router, prefix="/api")
+app.include_router(api_router, prefix="/api")
 
 @app.get("/health")
 async def health_check():

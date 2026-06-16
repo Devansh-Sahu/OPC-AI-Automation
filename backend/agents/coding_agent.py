@@ -2,7 +2,6 @@ import logging
 import json
 from backend.agents.base_agent import BaseAgent
 from backend.core.llm import chat_completion
-from backend.core.sandbox import Sandbox
 
 class CodingAgent(BaseAgent):
     """

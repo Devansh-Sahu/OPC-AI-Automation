@@ -1,4 +1,4 @@
-﻿"""
+"""
 Repository Analyzer Agent - Deep static analysis of repositories.
 Clones, parses AST, computes metrics, builds dependency graph.
 """
@@ -19,7 +19,7 @@ from langgraph.graph import StateGraph, END
 
 from backend.agents.base_agent import BaseAgent, BaseAgentState
 from backend.core.config import settings
-from backend.core.database import async_session
+from backend.core.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -685,7 +685,7 @@ class RepositoryAnalyzerAgent(BaseAgent):
     async def _node_save_to_db(self, state: RepositoryAnalyzerState) -> Dict[str, Any]:
         """Save analysis result to repository_knowledge table."""
         try:
-            async with async_session() as session:
+            async with AsyncSessionLocal() as session:
                 from backend.models.repository import RepositoryKnowledge
                 from sqlalchemy import select
 

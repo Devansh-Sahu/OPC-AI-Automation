@@ -9,15 +9,35 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
 
   useEffect(() => {
-    // Mock data for dev since backend is not fully seeded
-    setStats({
-      total_issues_found: 142,
-      draft_prs_created: 18,
-      prs_merged: 5,
-      success_rate_percent: 82.5,
-      active_agent_runs: 3,
-      total_cost_usd: 0.00
-    });
+    const fetchDashboard = async () => {
+      try {
+        // The API returns exactly this schema
+        const data = await api.get("/api/analytics/dashboard");
+        setStats({
+          total_issues_found: data.total_issues_scored || 0,
+          draft_prs_created: data.total_prs_created || 0,
+          prs_merged: data.total_prs_merged || 0,
+          success_rate_percent: data.success_rate || 0,
+          active_agent_runs: data.active_runs || 0,
+          total_cost_usd: data.estimated_cost_usd || 0
+        });
+      } catch (error) {
+        console.error("Failed to fetch dashboard stats", error);
+        setStats({
+          total_issues_found: 0,
+          draft_prs_created: 0,
+          prs_merged: 0,
+          success_rate_percent: 0,
+          active_agent_runs: 0,
+          total_cost_usd: 0
+        });
+      }
+    };
+    
+    fetchDashboard();
+    // Refresh every 10 seconds
+    const interval = setInterval(fetchDashboard, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   if (!stats) return <div className="p-8 text-ose-cyan">Loading dashboard...</div>;

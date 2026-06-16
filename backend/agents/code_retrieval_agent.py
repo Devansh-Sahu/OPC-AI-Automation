@@ -1,4 +1,4 @@
-﻿"""
+"""
 Code Retrieval Agent - RAG pipeline with AST-based chunking.
 Embeds repo code into ChromaDB and retrieves relevant context for issues.
 """
@@ -18,8 +18,8 @@ from langgraph.graph import StateGraph, END
 
 from backend.agents.base_agent import BaseAgent, BaseAgentState
 from backend.core.config import settings
-from backend.core.database import async_session
-from backend.core.vector_store import VectorStore
+from backend.core.database import AsyncSessionLocal
+from backend.core.vector_store import RepositoryVectorStore as VectorStore
 
 logger = logging.getLogger(__name__)
 

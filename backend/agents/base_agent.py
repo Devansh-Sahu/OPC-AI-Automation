@@ -1,4 +1,4 @@
-﻿"""
+"""
 Base Agent - Abstract foundation for all 12 AI agents.
 Provides: LangGraph StateGraph, PostgresSaver checkpointing, cost tracking, circuit breaker.
 """
@@ -17,7 +17,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.config import settings
-from backend.core.database import get_db, async_session
+from backend.core.database import get_db, AsyncSessionLocal
 from backend.core.llm import chat_completion, count_tokens
 from backend.core.circuit_breaker import circuit_breaker
 
@@ -101,7 +101,9 @@ class BaseAgent(ABC):
                 "postgresql+asyncpg://", "postgresql://"
             ).replace("postgresql://", "postgresql://")
 
-            self.checkpointer = AsyncPostgresSaver.from_conn_string(conn_string)
+            from psycopg_pool import AsyncConnectionPool
+            self.pool = AsyncConnectionPool(conninfo=conn_string, max_size=10)
+            self.checkpointer = AsyncPostgresSaver(self.pool)
             await self.checkpointer.setup()
 
             # Compile graph with checkpointer
@@ -236,7 +238,7 @@ class BaseAgent(ABC):
     ):
         """Log agent execution step to database."""
         try:
-            async with async_session() as session:
+            async with AsyncSessionLocal() as session:
                 from backend.models.agent import AgentExecutionLog
                 log_entry = AgentExecutionLog(
                     run_id=run_id,
@@ -262,7 +264,7 @@ class BaseAgent(ABC):
     ):
         """Update agent run status in database."""
         try:
-            async with async_session() as session:
+            async with AsyncSessionLocal() as session:
                 from backend.models.agent import AgentRun
                 from sqlalchemy import select, update
                 stmt = (

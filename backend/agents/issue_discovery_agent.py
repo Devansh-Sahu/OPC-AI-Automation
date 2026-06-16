@@ -1,4 +1,4 @@
-﻿"""
+"""
 Issue Discovery Agent - Scans repos for senior/staff/innovation-level issues.
 Skips beginner issues entirely. Uses XGBoost scoring for merge probability.
 """
@@ -16,7 +16,7 @@ from langgraph.graph import StateGraph, END
 
 from backend.agents.base_agent import BaseAgent, BaseAgentState
 from backend.core.config import settings
-from backend.core.database import async_session
+from backend.core.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +137,7 @@ class IssueDiscoveryAgent(BaseAgent):
 
     async def _node_load_repositories(self, state: IssueDiscoveryState) -> Dict[str, Any]:
         """Load active repos from DB ordered by quality score."""
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             from backend.models.repository import Repository
             from sqlalchemy import select
 
@@ -496,7 +496,7 @@ class IssueDiscoveryAgent(BaseAgent):
         issues = state["scored_issues"]
         upserted = 0
 
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             from backend.models.issue import Issue
             from sqlalchemy import select
 

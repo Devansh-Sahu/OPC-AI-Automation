@@ -1,4 +1,4 @@
-﻿"""
+"""
 Repo Discovery Agent - Fully autonomous repository discovery from multiple sources.
 No manual input required. Crawls GSoC, CNCF, Apache, LF, GitHub Trending, and more.
 """
@@ -19,7 +19,7 @@ from langgraph.graph import StateGraph, END
 from backend.agents.base_agent import BaseAgent, BaseAgentState
 from backend.core.config import settings
 from backend.core.circuit_breaker import circuit_breaker
-from backend.core.database import async_session
+from backend.core.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -450,7 +450,7 @@ class RepoDiscoveryAgent(BaseAgent):
         upserted = 0
         skipped = 0
 
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             from backend.models.repository import Repository
             from sqlalchemy import select
 

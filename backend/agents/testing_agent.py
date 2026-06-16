@@ -1,7 +1,6 @@
 import logging
 import json
 from backend.agents.base_agent import BaseAgent
-from backend.core.sandbox import Sandbox
 
 class TestingAgent(BaseAgent):
     """
